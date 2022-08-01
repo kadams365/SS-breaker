@@ -1,17 +1,18 @@
+import csv
 import gc
-import re
-from time import sleep
 import hashlib
+import os
+import random
+import re
+import shutil
+import string
+from time import sleep
+
 import pygame
 import requests
+from PIL import Image
 from bs4 import BeautifulSoup
 from playsound import playsound
-import random
-import string
-import csv
-import os
-import shutil
-from PIL import Image
 
 header = "https://prnt.sc/"
 screen = pygame.display.set_mode([1000, 720])
@@ -76,8 +77,8 @@ def main(oldtemp):
 
     request_picture_data(link)
 
-    with open(out_path, "rb") as f:
-        temp = hashlib.sha256(f.read()).hexdigest()
+    with open(out_path, "rb") as file:
+        temp = hashlib.sha256(file.read()).hexdigest()
 
     if hash1 != temp or hash2 != temp:
         if oldtemp == temp:
@@ -102,7 +103,7 @@ def main(oldtemp):
         pygame.display.flip()
 
         print("New link:", link)
-        # playsound(sound)
+        playsound(sound)
 
         pygame.event.pump()
         screen.blit(img, (0, 0))
