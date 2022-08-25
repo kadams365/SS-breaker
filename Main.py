@@ -12,7 +12,6 @@ import pygame
 import requests
 from PIL import Image
 from bs4 import BeautifulSoup
-from playsound import playsound
 
 header = "https://prnt.sc/"
 screen = pygame.display.set_mode([1000, 720])
@@ -62,9 +61,8 @@ def request_picture_data(link):
             return
         elif r.url == header:
             return
-        elif picture_link == "":
+        elif not picture_link:
             return
-
         else:
             response = s.get(picture_link[:-1], headers={'User-Agent': 'Chrome'})
             with open(out_path, 'wb') as f:
@@ -74,13 +72,14 @@ def request_picture_data(link):
 def main(oldtemp):
     code = generate_code()
     link = header + code
+    pic_file = code + '.png'
 
     request_picture_data(link)
 
     with open(out_path, "rb") as file:
         temp = hashlib.sha256(file.read()).hexdigest()
 
-    if hash1 != temp or hash2 != temp:
+    if hash1 != temp and hash2 != temp:
         if oldtemp == temp:
             main(oldtemp)
 
@@ -96,28 +95,22 @@ def main(oldtemp):
         image.close()
 
         shutil.copy(out_path, holding)
-        os.rename(holding + '\Temp1.png', code + ".png")
-        shutil.move(code + ".png", holding)
+        os.rename(holding + '\\' + out_path, pic_file)
+        shutil.move(pic_file, holding)
 
         screen.fill(color)
         pygame.display.flip()
 
         print("New link:", link)
-        playsound(sound)
 
         pygame.event.pump()
         screen.blit(img, (0, 0))
         pygame.display.flip()
-        sleep(5)
+        sleep(1)
         main(oldtemp)
     else:
         main(oldtemp)
 
 
 gc.enable()
-with open("Hash1.png", "rb") as f:
-    hash1 = hashlib.sha256(f.read()).hexdigest()
-
-with open("Hash2.png", "rb") as f:
-    hash2 = hashlib.sha256(f.read()).hexdigest()
 main(old_temp)
