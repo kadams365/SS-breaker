@@ -3,7 +3,6 @@ import gc
 import hashlib
 import re
 import time
-from itertools import chain, product
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,13 +18,10 @@ hash4 = '376f5045e4dd8bf68ac9e374518a01c18b2fdf76344f2cc08cac143acc4f3cb8'
 hash5 = '64521da3e8bbdde2ef2b645c4468ba25c4dbbe07999f7fc74f763f4527f19a4f'
 
 hashes = [hash1, hash2, hash3, hash4, hash5]
-temp = ''
-
-chars = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
 
 @jit
-def convert(seconds, current_line, average_attempt):
+def convert(seconds):
     day = seconds // (24 * 3600)
     seconds = seconds % (24 * 3600)
     hour = seconds // 3600
@@ -37,16 +33,25 @@ def convert(seconds, current_line, average_attempt):
 
 
 def load_last_attempt():
-    with open('last_code.txt', 'r') as f:
-        line = f.readline()
-        last_code = line.strip()
-
-    return last_code
+    with open('Untested_links', 'r') as file:
+        first_line = file.readline().strip()
+    return first_line
 
 
-def save_last_attempt(last_code):
-    with open('last_code.txt', 'w') as f:
-        f.write(last_code + '\n')
+def delete_first_line(file_path):
+    with open(file_path, 'r', newline='') as csv_file:
+        csv_reader = csv.reader(csv_file)
+        lines = list(csv_reader)
+
+    # Check if the file has at least one line
+    if len(lines) == 0:
+        print("File is empty. Nothing to delete.")
+        return
+
+    # Overwrite the file with the content starting from the second line
+    with open(file_path, 'w', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerows(lines[1:])
 
 
 def current_attempt(last_code):
@@ -54,12 +59,6 @@ def current_attempt(last_code):
         for line_num, line in enumerate(f, 1):
             if last_code in line:
                 return line_num + 1
-
-
-def iterator(charset, maxlength):
-    return (''.join(candidate)
-            for candidate in chain.from_iterable(product(charset, repeat=i)
-                                                 for i in range(4, maxlength + 1)))
 
 
 def request_picture_data(link):
@@ -94,22 +93,27 @@ def check_image_hashes(hashed_image):
     return False
 
 
-def status(counter, exect_times, link_counter, start_line):
-    if counter % 250 == 0:
-        print('--------------------')
-        current_line = start_line + counter
+def count_lines():
+    with open('Untested_links', 'r') as file:
+        line_count = 0
+        for line in file:
+            line_count += 1
+    return line_count
 
-        average_attempt = round((sum(exect_times) / len(exect_times)), 4)
-        chance_link = round((link_counter / counter) * 100, 4)
-        sec_till_done = (1501377 - current_line) / average_attempt
-        day, hour, minutes, seconds = convert(sec_till_done, current_line, average_attempt)
-        percent_comp = round((current_line / 1501377) * 100, 4)
 
-        print('Average attempt time:', average_attempt, 'secs.')
-        print('Percent chance link found:', chance_link, '%')
-        print('Time remaining:', "%d day(s) %02d:%02d:%02d" % (day, hour, minutes, seconds))
-        print('Percent complete:', percent_comp, '%')
-        print('--------------------')
+def status(counter, exect_times, link_counter):
+    print('--------------------')
+    lines_left = count_lines()
+
+    average_attempt = round((sum(exect_times) / len(exect_times)), 4)
+    sec_till_done = (lines_left - 1) / average_attempt
+    chance_link = round((link_counter / counter) * 100, 4)
+    day, hour, minutes, seconds = convert(sec_till_done)
+
+    print('Average attempt time:', average_attempt, 'sec(s).')
+    print('Percent chance link found:', chance_link, '%')
+    print('Time remaining:', "%d day(s) %02d:%02d:%02d" % (day, hour, minutes, seconds))
+    print('--------------------')
 
 
 def main():
@@ -122,44 +126,42 @@ def main():
 
     print('   ---STATUS---')
     print('Last code checked:', last_code)
-    print('Current line:', start_line + counter)
+    print('--------------------')
 
     with open('Untested_links', 'r', encoding="utf-8") as file:
         for i, attempt in enumerate(file):
+            start = time.perf_counter()
+
             if i >= start_line:
-                start = time.perf_counter()
                 attempt = str(attempt).strip()
+                link = header + attempt
 
-                save_last_attempt(attempt)
+                try:
+                    if request_picture_data(link):
+                        with open(out_path, "rb") as f:
+                            image_hash = (hashlib.sha256(f.read()).hexdigest())
 
-                if not attempt.isdigit():
-                    link = header + attempt
+                        if check_image_hashes(image_hash):
+                            with open("Codes.csv", 'a', newline='') as csvfile:
+                                writer = csv.writer(csvfile)
+                                writer.writerow([attempt, link])
 
-                    try:
-                        if request_picture_data(link):
-                            with open(out_path, "rb") as f:
-                                image_hash = (hashlib.sha256(f.read()).hexdigest())
+                            link_counter += 1
+                except Exception as e:
+                    print(e)
 
-                            if check_image_hashes(image_hash):
-                                with open("CodesV4.csv", 'a', newline='') as csvfile:
-                                    writer = csv.writer(csvfile)
-                                    writer.writerow([attempt, link])
+            end = time.perf_counter()
+            exect_times.append((end - start))
 
-                                link_counter += 1
-                    except Exception as e:
-                        print(e)
+            delete_first_line('Untested_links')
 
-                end = time.perf_counter()
-                exect_times.append((end - start))
+            if counter % 50 == 0:
+                print('   ---STATUS---')
+                print('Last code checked:', attempt)
+                print('Total attempts:', counter, '\nTotal links found:', link_counter)
+                status(counter, exect_times, link_counter)
 
-                if counter % 500 == 0:
-                    print('   ---STATUS---')
-                    print('Last code checked:', attempt)
-                    print('Current line:', start_line + counter)
-                    print('Total attempts:', counter, '\nTotal links found:', link_counter)
-                    status(counter, exect_times, link_counter, start_line)
-
-                counter += 1
+            counter += 1
 
 
 if __name__ == "__main__":
