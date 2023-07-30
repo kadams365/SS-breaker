@@ -1,23 +1,20 @@
-from itertools import chain, product
 import csv
-
-chars = 'abcdefghijklmnopqrstuvwxyz1234567890'
-code_length = 5
+import itertools
+import string
 
 
 def iterator(charset, length_of_codes):
     return (''.join(candidate)
-            for candidate in chain.from_iterable(product(charset, repeat=i)
-                                                 for i in range(length_of_codes, length_of_codes + 1)))
+            for candidate in itertools.product(charset, repeat=length_of_codes))
 
 
-# Function to write generator object to a CSV file
-def write_generator_to_csv(file_path, generator):
-    with open(file_path, 'w', newline='') as csv_file:
-        csv_writer = csv.writer(csv_file)
+chars = string.ascii_lowercase + string.digits
+code_length = 5
 
-        for row in generator:
-            csv_writer.writerow(row)
+codes_generator = iterator(chars, code_length)
 
-
-write_generator_to_csv('Codes.csv', iterator(chars, code_length))
+with open('Test.csv', 'w', newline='') as csvfile:
+    csv_writer = csv.writer(csvfile)
+    for code in codes_generator:
+        if not code.isdigit():  # Check if the code is not a number
+            csv_writer.writerow([code])
