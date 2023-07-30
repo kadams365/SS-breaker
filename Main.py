@@ -45,7 +45,7 @@ def delete_first_line(file_path):
 
     # Check if the file has at least one line
     if len(lines) == 0:
-        print("File is empty. Nothing to delete.")
+        print("File is empty. Generate new codes.")
         return
 
     # Overwrite the file with the content starting from the second line
