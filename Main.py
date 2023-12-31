@@ -144,7 +144,7 @@ def main():
 
             delete_first_line('Untested_links')
 
-            if counter % 50 == 0:
+            if counter % 500 == 0:
                 print('   ---STATUS---')
                 print('Last code checked:', attempt)
                 print('Total attempts:', counter, '\nTotal links found:', link_counter)
