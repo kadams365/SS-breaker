@@ -44,7 +44,7 @@ def delete_first_line(file_path):
         lines = list(csv_reader)
 
     # Check if the file has at least one line
-    if len(lines) == 0:
+    if not lines:
         print("File is empty. Generate new codes.")
         return
 
@@ -70,34 +70,23 @@ def request_picture_data(link):
         picture_string = str(re.findall(r'(https?://\S+)', picture_data)).strip()
         picture_link = picture_string.translate({ord(c): None for c in "[]\'\">"}).strip()
 
-        #   Error when code generation creation is not a valid image link.
-        if picture_data == "None":
+        if picture_data == "None" or r.url == header or not picture_link:
             return
-        elif r.url == header:
-            return
-        elif not picture_link:
-            return
-        else:
-            response = s.get(picture_link[:-1], headers={'User-Agent': 'Chrome'})
-            with open(out_path, 'wb') as f:
-                f.write(response.content)
+        response = s.get(picture_link[:-1], headers={'User-Agent': 'Chrome'})
+        with open(out_path, 'wb') as f:
+            f.write(response.content)
 
-            return True
+        return True
 
 
 @jit(forceobj=True)
 def check_image_hashes(hashed_image):
-    if hashed_image not in hashes:
-        return True
-
-    return False
+    return hashed_image not in hashes
 
 
 def count_lines():
     with open('Untested_links', 'r') as file:
-        line_count = 0
-        for line in file:
-            line_count += 1
+        line_count = sum(1 for _ in file)
     return line_count
 
 
